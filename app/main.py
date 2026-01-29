@@ -1,52 +1,32 @@
-import json
-import xml.etree.ElementTree as ET
+from dataclasses import dataclass
+
+from app.display.registry import get_displayer
+from app.printing.registry import get_printer
+from app.serialization.registry import get_serializer
+from app.services.book_service import BookService
 
 
+@dataclass(frozen=True)
 class Book:
-    def __init__(self, title: str, content: str):
-        self.title = title
-        self.content = content
+    title: str
+    content: str
 
     def display(self, display_type: str) -> None:
-        if display_type == "console":
-            print(self.content)
-        elif display_type == "reverse":
-            print(self.content[::-1])
-        else:
-            raise ValueError(f"Unknown display type: {display_type}")
+        displayer = get_displayer(display_type)
+        displayer.display(self)
 
     def print_book(self, print_type: str) -> None:
-        if print_type == "console":
-            print(f"Printing the book: {self.title}...")
-            print(self.content)
-        elif print_type == "reverse":
-            print(f"Printing the book in reverse: {self.title}...")
-            print(self.content[::-1])
-        else:
-            raise ValueError(f"Unknown print type: {print_type}")
+        printer = get_printer(print_type)
+        printer.print(self)
 
     def serialize(self, serialize_type: str) -> str:
-        if serialize_type == "json":
-            return json.dumps({"title": self.title, "content": self.content})
-        elif serialize_type == "xml":
-            root = ET.Element("book")
-            title = ET.SubElement(root, "title")
-            title.text = self.title
-            content = ET.SubElement(root, "content")
-            content.text = self.content
-            return ET.tostring(root, encoding="unicode")
-        else:
-            raise ValueError(f"Unknown serialize type: {serialize_type}")
+        serializer = get_serializer(serialize_type)
+        return serializer.serialize(self)
 
 
 def main(book: Book, commands: list[tuple[str, str]]) -> None | str:
-    for cmd, method_type in commands:
-        if cmd == "display":
-            book.display(method_type)
-        elif cmd == "print":
-            book.print_book(method_type)
-        elif cmd == "serialize":
-            return book.serialize(method_type)
+    service = BookService()
+    return service.execute(book, commands)
 
 
 if __name__ == "__main__":
